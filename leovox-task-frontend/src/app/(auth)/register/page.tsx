@@ -1,14 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, UserPlus, ArrowLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, UserPlus, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import gsap from "gsap";
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,17 +29,20 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (formRef.current) {
-      gsap.fromTo(
-        formRef.current,
-        { opacity: 0, y: 40, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "expo.out" }
-      );
-    }
-  }, []);
+  // Password strength indicator
+  const passwordStrength = useMemo(() => {
+    if (!password) return 0;
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    return score;
+  }, [password]);
+
+  const strengthLabel = ["", "Fraca", "Razoável", "Boa", "Forte"][passwordStrength];
+  const strengthColor = ["", "bg-danger", "bg-warning", "bg-info", "bg-success"][passwordStrength];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,62 +77,81 @@ export default function RegisterPage() {
   };
 
   const inputClasses =
-    "flex h-12 w-full rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] px-4 py-3 text-sm text-text placeholder:text-text-muted/50 transition-all duration-300 focus:outline-none focus:bg-white/[0.06] focus:border-primary/40 focus:shadow-[0_0_0_3px_rgba(0,255,65,0.08),0_0_20px_rgba(0,255,65,0.05)] hover:border-white/[0.15]";
+    "flex h-12 w-full rounded-[10px] bg-surface border border-border pl-11 pr-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-all duration-300 font-sans focus:outline-none focus:border-primary/40 focus:shadow-[0_0_0_3px_rgba(0,255,65,0.08),0_0_20px_rgba(0,255,65,0.05)] hover:border-border-hover";
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 bg-grid-pattern pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/[0.05] rounded-full blur-[150px] pointer-events-none" />
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side — Branding (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-[60%] relative items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-background" />
+        <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/[0.06] rounded-full blur-[150px]" />
 
-      <div ref={formRef} className="w-full max-w-md relative z-10 opacity-0">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors mb-8 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" strokeWidth={1.5} />
-          Voltar ao início
-        </Link>
+        <div className="absolute top-[20%] left-[15%] w-64 h-64 bg-primary/[0.03] rounded-full blur-[80px] animate-float" />
+        <div
+          className="absolute bottom-[25%] right-[20%] w-48 h-48 bg-primary/[0.04] rounded-full blur-[60px] animate-float"
+          style={{ animationDelay: "2s" }}
+        />
 
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-10">
+        <div className="relative z-10 text-center px-12 max-w-lg">
           <Image
-            src="/assets/IsotipoLeovoxverde.svg"
-            alt="Leovox"
-            width={44}
-            height={44}
-            className="rounded-xl"
+            src="/assets/LogoLeovoxverde.svg"
+            alt="Leovox Logo"
+            width={280}
+            height={200}
+            className="mx-auto mb-8 drop-shadow-[0_0_30px_rgba(0,255,65,0.15)]"
           />
-          <span className="text-2xl font-bold font-heading text-primary text-glow">
-            Leovox Task
-          </span>
+          <p className="text-xl text-text-secondary font-heading font-bold leading-relaxed">
+            Organize suas tarefas com{" "}
+            <span className="text-primary text-glow">linguagem natural</span>
+          </p>
         </div>
+      </div>
 
-        {/* Glass Panel */}
-        <div className="glass-panel rounded-2xl p-8 noise-overlay relative">
-          <div className="relative z-10">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold font-heading mb-2">Criar sua conta</h1>
-              <p className="text-sm text-text-secondary">Comece a organizar suas tarefas com IA</p>
-            </div>
+      {/* Right Side — Form */}
+      <div className="w-full lg:w-[40%] flex items-center justify-center px-6 py-12 relative">
+        <div className="absolute inset-0 bg-background-secondary lg:bg-transparent" />
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+          className="w-full max-w-[400px] relative z-10"
+        >
+          {/* Mobile logo */}
+          <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-10 lg:hidden">
+            <Image src="/assets/IsotipoLeovoxverde.svg" alt="Leovox" width={40} height={40} />
+            <span className="text-xl font-bold font-heading text-primary text-glow">Leovox Task</span>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <h1 className="text-[2rem] font-extrabold font-heading mb-2 text-text-primary">
+              Criar sua conta
+            </h1>
+            <p className="text-text-secondary mb-8">Comece a organizar suas tarefas com IA</p>
+          </motion.div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <AnimatePresence>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm backdrop-blur-sm"
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-3.5 rounded-[10px] bg-danger/10 border border-danger/20 text-danger text-sm"
                 >
                   {error}
                 </motion.div>
               )}
+            </AnimatePresence>
 
-              {/* Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                  Nome
-                </label>
+            {/* Name */}
+            <motion.div variants={fadeUp} className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary uppercase tracking-[0.05em]">
+                Nome
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" strokeWidth={1.5} />
                 <input
                   type="text"
                   value={name}
@@ -131,12 +162,15 @@ export default function RegisterPage() {
                   className={inputClasses}
                 />
               </div>
+            </motion.div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                  E-mail
-                </label>
+            {/* Email */}
+            <motion.div variants={fadeUp} className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary uppercase tracking-[0.05em]">
+                E-mail
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" strokeWidth={1.5} />
                 <input
                   type="email"
                   value={email}
@@ -147,41 +181,61 @@ export default function RegisterPage() {
                   className={inputClasses}
                 />
               </div>
+            </motion.div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                  Senha
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                    autoComplete="new-password"
-                    className={`${inputClasses} pr-12`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" strokeWidth={1.5} />
-                    ) : (
-                      <Eye className="w-4 h-4" strokeWidth={1.5} />
-                    )}
-                  </button>
-                </div>
+            {/* Password */}
+            <motion.div variants={fadeUp} className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary uppercase tracking-[0.05em]">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" strokeWidth={1.5} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  autoComplete="new-password"
+                  className={`${inputClasses} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-primary transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" strokeWidth={1.5} />
+                  ) : (
+                    <Eye className="w-4 h-4" strokeWidth={1.5} />
+                  )}
+                </button>
               </div>
+              {/* Password strength */}
+              {password && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 flex gap-1">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                          i <= passwordStrength ? strengthColor : "bg-border"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-text-tertiary">{strengthLabel}</span>
+                </div>
+              )}
+            </motion.div>
 
-              {/* Confirm Password */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                  Confirmar Senha
-                </label>
+            {/* Confirm Password */}
+            <motion.div variants={fadeUp} className="space-y-2">
+              <label className="text-xs font-medium text-text-secondary uppercase tracking-[0.05em]">
+                Confirmar Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" strokeWidth={1.5} />
                 <input
                   type="password"
                   value={passwordConfirmation}
@@ -192,11 +246,13 @@ export default function RegisterPage() {
                   className={inputClasses}
                 />
               </div>
+            </motion.div>
 
+            <motion.div variants={fadeUp}>
               <Button type="submit" className="w-full h-12 text-sm" disabled={isLoading}>
                 {isLoading ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                     Criando conta...
                   </span>
                 ) : (
@@ -206,20 +262,16 @@ export default function RegisterPage() {
                   </span>
                 )}
               </Button>
-            </form>
+            </motion.div>
+          </form>
 
-            <p className="text-center text-sm text-text-secondary mt-8">
-              Já tem uma conta?{" "}
-              <Link href="/login" className="text-primary hover:text-primary-hover transition-colors font-medium">
-                Entrar
-              </Link>
-            </p>
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-text-muted mt-8">
-          &copy; 2026 Leovox Task — Leonardo Gonçalves Sobral
-        </p>
+          <motion.p variants={fadeUp} className="text-center text-sm text-text-secondary mt-8">
+            Já tem uma conta?{" "}
+            <Link href="/login" className="text-primary hover:text-primary-hover transition-colors font-medium">
+              Entrar
+            </Link>
+          </motion.p>
+        </motion.div>
       </div>
     </div>
   );

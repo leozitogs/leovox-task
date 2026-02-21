@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Loader2 } from "lucide-react";
 
 function AuthenticatedContent({ children }: { children: React.ReactNode }) {
@@ -65,7 +66,14 @@ function AuthenticatedContent({ children }: { children: React.ReactNode }) {
         className="min-h-screen relative z-10 transition-all duration-300 ease-out"
         style={{ marginLeft: sidebarCollapsed ? 80 : 272 }}
       >
-        {children}
+        {/* Top bar with ThemeToggle */}
+        <div className="sticky top-0 z-30 flex justify-end p-4 pr-6">
+          <ThemeToggle />
+        </div>
+
+        <div className="px-6 lg:px-8 xl:px-10 pb-10 -mt-2">
+          {children}
+        </div>
       </main>
     </div>
   );

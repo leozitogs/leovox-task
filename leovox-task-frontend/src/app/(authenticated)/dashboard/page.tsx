@@ -1,38 +1,75 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  ListTodo,
-  PlayCircle,
-  CheckCircle2,
-  AlertTriangle,
+  BarChart3,
+  Circle,
   Clock,
-  TrendingUp,
+  CheckCircle,
+  AlertTriangle,
   CalendarClock,
+  Plus,
 } from "lucide-react";
-import { StatsCard } from "@/components/tasks/StatsCard";
-import { TaskList } from "@/components/tasks/TaskList";
-import { dashboardApi, tasksApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import type { DashboardStats, Task } from "@/types";
-import gsap from "gsap";
+import { dashboardApi, tasksApi } from "@/lib/api";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import { RecentTasks } from "@/components/dashboard/RecentTasks";
+import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import type { Task } from "@/types";
+
+interface DashboardStats {
+  total: number;
+  todo: number;
+  in_progress: number;
+  done: number;
+  urgent: number;
+  overdue: number;
+  due_today: number;
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Bom dia,";
+  if (hour < 18) return "Boa tarde,";
+  return "Boa noite,";
+}
+
+function getFormattedDate(): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    todo: 0,
+    in_progress: 0,
+    done: 0,
+    urgent: 0,
+    overdue: 0,
+    due_today: 0,
+  });
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const headerRef = useRef<HTMLDivElement>(null);
 
-  const loadData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [statsRes, tasksRes] = await Promise.all([
         dashboardApi.getStats(),
         tasksApi.list({ per_page: "5", sort_by: "created_at", sort_dir: "desc" }),
       ]);
       setStats(statsRes.data);
-      setRecentTasks(tasksRes.data.data);
+      const tasksData = Array.isArray(tasksRes.data)
+        ? tasksRes.data
+        : tasksRes.data?.data || [];
+      setRecentTasks(tasksData);
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
     } finally {
@@ -41,130 +78,95 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    if (headerRef.current) {
-      gsap.fromTo(
-        headerRef.current,
-        { opacity: 0, y: -20 },
-        { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }
-      );
-    }
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const handleStatusChange = async (taskId: number, status: string) => {
     try {
       await tasksApi.updateStatus(taskId, status);
-      loadData();
+      fetchData();
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
     }
   };
 
-  const handleDelete = async (taskId: number) => {
-    try {
-      await tasksApi.delete(taskId);
-      loadData();
-    } catch (error) {
-      console.error("Erro ao deletar tarefa:", error);
-    }
-  };
+  const firstName = user?.name?.split(" ")[0] || "Usuário";
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Bom dia";
-    if (hour < 18) return "Boa tarde";
-    return "Boa noite";
-  };
+  const metricsConfig = [
+    { title: "Total de Tarefas", value: stats.total, icon: BarChart3, color: "text-info" },
+    { title: "A Fazer", value: stats.todo, icon: Circle, color: "text-text-secondary" },
+    { title: "Em Progresso", value: stats.in_progress, icon: Clock, color: "text-warning" },
+    { title: "Concluídas", value: stats.done, icon: CheckCircle, color: "text-success" },
+    { title: "Urgentes", value: stats.urgent, icon: AlertTriangle, color: "text-danger" },
+    { title: "Vencem Hoje", value: stats.due_today, icon: CalendarClock, color: "text-primary" },
+  ];
 
   return (
-    <div className="p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div ref={headerRef} className="mb-10 opacity-0">
-        <h1 className="text-3xl lg:text-4xl font-bold font-heading tracking-tight">
-          {getGreeting()},{" "}
-          <span className="text-primary text-glow">{user?.name?.split(" ")[0]}</span>
-        </h1>
-        <p className="text-text-secondary mt-2 text-sm lg:text-base">
-          Aqui está o resumo das suas tarefas.
+    <div className="space-y-8 max-w-[1400px] mx-auto">
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <p className="text-text-secondary font-sans text-base">
+          {getGreeting()}{" "}
+          <span className="text-primary font-heading font-bold text-glow">
+            {firstName}
+          </span>
         </p>
-      </div>
+        <p className="text-text-tertiary text-sm mt-1 capitalize">
+          {getFormattedDate()}
+        </p>
+      </motion.div>
 
-      {/* Stats Grid */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mb-10">
-          <StatsCard title="Total" value={stats.total} icon={TrendingUp} delay={0} />
-          <StatsCard title="A Fazer" value={stats.todo} icon={ListTodo} delay={0.06} />
-          <StatsCard
-            title="Em Progresso"
-            value={stats.in_progress}
-            icon={PlayCircle}
-            color="text-info"
-            delay={0.12}
-          />
-          <StatsCard
-            title="Concluídas"
-            value={stats.done}
-            icon={CheckCircle2}
-            color="text-success"
-            delay={0.18}
-          />
-          <StatsCard
-            title="Urgentes"
-            value={stats.urgent}
-            icon={AlertTriangle}
-            color="text-danger"
-            delay={0.24}
-          />
-          <StatsCard
-            title="Atrasadas"
-            value={stats.overdue}
-            icon={Clock}
-            color="text-warning"
-            delay={0.3}
-          />
-          <StatsCard
-            title="Vencem Hoje"
-            value={stats.due_today}
-            icon={CalendarClock}
-            color="text-info"
-            delay={0.36}
-          />
-        </div>
-      )}
-
-      {/* Loading skeleton for stats */}
-      {!stats && isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mb-10">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+      {/* ── Metrics Grid (3x2 desktop, 2x3 tablet, 1x6 mobile) ── */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="h-32 rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-shimmer"
+              className="h-[140px] rounded-[12px] animate-shimmer border border-border"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {metricsConfig.map((metric, index) => (
+            <StatsCard
+              key={metric.title}
+              title={metric.title}
+              value={metric.value}
+              icon={metric.icon}
+              color={metric.color}
+              delay={index * 0.08}
             />
           ))}
         </div>
       )}
 
-      {/* Recent Tasks */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl lg:text-2xl font-bold font-heading tracking-tight">
-            Tarefas Recentes
-          </h2>
-        </div>
-        <TaskList
+      {/* ── Chart + Recent Tasks (side by side on desktop) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ActivityChart />
+        <RecentTasks
           tasks={recentTasks}
           isLoading={isLoading}
           onStatusChange={handleStatusChange}
-          onDelete={handleDelete}
         />
-      </motion.div>
+      </div>
+
+      {/* ── Floating Action Button ── */}
+      <CreateTaskDialog onTaskCreated={fetchData}>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-black flex items-center justify-center shadow-lg glow-primary animate-pulse-glow cursor-pointer"
+          aria-label="Nova Tarefa"
+        >
+          <Plus className="w-6 h-6" strokeWidth={2} />
+        </motion.button>
+      </CreateTaskDialog>
     </div>
   );
 }

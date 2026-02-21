@@ -10,6 +10,7 @@ import {
   Circle,
   PlayCircle,
   AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Task } from "@/types";
@@ -49,7 +50,7 @@ const statusIcon = (status: string) => {
     case "in_progress":
       return <PlayCircle className="w-5 h-5 text-info" strokeWidth={1.5} />;
     default:
-      return <Circle className="w-5 h-5 text-text-muted" strokeWidth={1.5} />;
+      return <Circle className="w-5 h-5 text-text-tertiary" strokeWidth={1.5} />;
   }
 };
 
@@ -75,13 +76,13 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, x: -100 }}
       transition={{ duration: 0.25 }}
-      whileHover={{ scale: 1.005 }}
+      whileHover={{ x: 4 }}
     >
       <div
         className={cn(
-          "glass-card rounded-2xl p-5 transition-all duration-300",
+          "glass-card rounded-[12px] p-5 transition-all duration-300",
           task.status === "done" && "opacity-50",
           isOverdue && "border-danger/20 hover:border-danger/30"
         )}
@@ -103,8 +104,8 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
             <div className="flex items-center gap-2 mb-1.5">
               <h3
                 className={cn(
-                  "text-sm font-semibold truncate",
-                  task.status === "done" && "line-through text-text-muted"
+                  "text-sm font-semibold truncate text-text-primary",
+                  task.status === "done" && "line-through text-text-tertiary"
                 )}
               >
                 {task.title}
@@ -115,14 +116,16 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
             </div>
 
             {task.description && (
-              <p className="text-xs text-text-secondary mb-3 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-text-secondary mb-3 line-clamp-1 leading-relaxed">
                 {task.description}
               </p>
             )}
 
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={priorityBadgeVariant(task.priority)}>
-                <span className={cn("mr-1.5 text-[8px]", getPriorityColor(task.priority))}>●</span>
+                <span className={cn("mr-1.5 text-[8px]", getPriorityColor(task.priority))}>
+                  ●
+                </span>
                 {getPriorityLabel(task.priority)}
               </Badge>
 
@@ -135,16 +138,16 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
                     isOverdue ? "text-danger" : "text-text-secondary"
                   )}
                 >
-                  <Clock className="w-3 h-3" strokeWidth={1.5} />
+                  <Calendar className="w-3 h-3" strokeWidth={1.5} />
                   <span>{formatRelativeDate(task.due_date)}</span>
                 </div>
               )}
 
               {task.tags && task.tags.length > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Tag className="w-3 h-3 text-text-muted" strokeWidth={1.5} />
+                  <Tag className="w-3 h-3 text-text-tertiary" strokeWidth={1.5} />
                   {task.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="text-xs text-text-muted">
+                    <span key={tag} className="text-xs text-text-tertiary">
                       #{tag}
                     </span>
                   ))}
@@ -158,7 +161,7 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => onDelete(task.id)}
-            className="text-text-muted hover:text-danger transition-colors flex-shrink-0 p-2 rounded-xl hover:bg-danger/10"
+            className="text-text-tertiary hover:text-danger transition-colors flex-shrink-0 p-2 rounded-[10px] hover:bg-danger/10"
           >
             <Trash2 className="w-4 h-4" strokeWidth={1.5} />
           </motion.button>
